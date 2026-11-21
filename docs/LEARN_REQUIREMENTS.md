@@ -84,3 +84,6 @@ Scope: Learn/discovery only; query interpretation, query traversal, and answer g
 - **Issue:** Semantic confidence is model-reported and not yet independently calibrated from supporting and contradicting evidence.
 - **Issue:** Cross-source pattern classification masks the simultaneous monthly recurrence pattern for hospital payments; permit multiple independent observations on the same records.
 - **Next milestone:** Introduce story-coherence validation and normalized relation claims before expanding the demo dataset or adding query traversal.
+
+- **Implemented (2026-11-21):** DeepSeek Learn prompt now keeps shared-actor activities in separate micro-stories unless purpose, causal/dependency, sequence, or other meaningful evidence connects them.
+- **Limitation:** Prompt refinements affect future annotations but do not automatically delete pre-existing incoherent story nodes; semantic cleanup remains pending.
