@@ -28,9 +28,9 @@ export function addOrSupportClaim(node,edge,{revision=1}={}){
     node.links.push({...edge,claimId:id,status:'active',revision});
     return true;
   }
-  const nextEvidence=[...new Set([...arr(prior.evidence),...evidence])];
+  const nextEvidence=[...new Set([...arr(prior.evidence),...evidence])].sort();
   const score=clamp(edge.confidence);
-  const before=JSON.stringify({e:prior.evidence,c:prior.confidence,status:prior.status});
+  const before=JSON.stringify({e:[...arr(prior.evidence)].sort(),c:prior.confidence,status:prior.status});
   prior.evidence=nextEvidence;
   prior.confidence=score;
   prior.claimId=id;
