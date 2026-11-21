@@ -21,8 +21,8 @@ Set `OPENAI_API_KEY` for LLM semantic annotation; without a key, structural and 
 2. Deterministic pattern detectors summarize repeated values, temporal proximity and cross-source matches.
 3. A bounded LLM prompt receives metadata and pattern summaries, not the whole data set.
 4. LLM annotations create `entity`, `event`, and `micro_story` nodes with confidence, evidence and search terms.
-5. The graph and revision history persist to JSON for incremental Learn runs.
+5. New semantic search terms trigger one bounded local feedback search and, with an LLM configured, another annotation pass.\n6. The graph and revision history persist to JSON for incremental Learn runs.
 
-This is an **initial implementation**, not the completed Learn system. In particular, search-hint-driven local expansion, identity disambiguation, calibrated confidence changes, source deletion/replacement, impacted-story LLM re-review, and the discovery UI are still pending. `reviewNeeded` marks affected stories but does not automatically reinterpret them yet.
+This is an **initial implementation**, not the completed Learn system. In particular, deeper multi-iteration hint expansion, entity identity disambiguation, calibrated confidence changes, source deletion/replacement, automatic impacted-story LLM re-review, and the discovery UI are still pending. `reviewNeeded` marks affected stories but does not automatically reinterpret them yet.
 
 See [Learn requirements](docs/LEARN_REQUIREMENTS.md).
