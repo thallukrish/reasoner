@@ -72,3 +72,15 @@ Scope: Learn/discovery only; query interpretation, query traversal, and answer g
 - **Pending:** Deeper temporal event/episode reconstruction, story clustering, and recurring workflow generalization.
 - **Pending:** Minimal Learn UI for loading CSV and inspecting patterns, evidence, and micro-stories.
 - **Excluded:** Query-v4 and goal-directed query traversal remain outside the current Learn-only milestone.
+
+## Demo revision 3 review (2026-11-21)
+
+- **Validated:** DeepSeek produced four semantic entity nodes, five event nodes, and three micro-story nodes from the three synthetic CSV sources.
+- **Validated:** Twenty-five deterministic findings comprise two cross-source matches, nine temporal matches, two repeated values, and twelve semantic-hint searches.
+- **Validated:** All 61 graph nodes have resolvable link targets in the uploaded revision-3 map.
+- **Issue:** A third micro-story groups unrelated healthcare and travel messages solely through a common sender; require plot or causal continuity, not actor overlap alone.
+- **Issue:** Semantic refinement creates parallel links to the same node with differing free-text relationship labels; normalize relation vocabulary and merge equivalent claims.
+- **Issue:** Existing micro-stories remain marked `reviewNeeded` even after the feedback annotation pass; distinguish pending review from completed semantic review.
+- **Issue:** Semantic confidence is model-reported and not yet independently calibrated from supporting and contradicting evidence.
+- **Issue:** Cross-source pattern classification masks the simultaneous monthly recurrence pattern for hospital payments; permit multiple independent observations on the same records.
+- **Next milestone:** Introduce story-coherence validation and normalized relation claims before expanding the demo dataset or adding query traversal.
