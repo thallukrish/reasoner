@@ -1,4 +1,5 @@
 import { stableId } from './csv.js';
+import { prepareClaims,addOrSupportClaim } from './claims.js';
 const allowedTypes=new Set(['entity','micro_story','event']);
 const bounded=(value,max=500)=>String(value??'').slice(0,max);
 const arr=value=>Array.isArray(value)?value:[];
@@ -20,10 +21,10 @@ Use ONLY evidence IDs that occur in the provided findings; do not fabricate reco
 You may update a known semantic node by using its exact id as key. Do not duplicate existing entities.
 Story coherence rules:
 - A shared actor, location, merchant, topic, timestamp, or generic entity relationship does NOT by itself establish a common story or workflow.
-- Keep different activities involving the same actor as distinct micro-stories (e.g. Arun's hospital follow-up and Mysuru bus booking). Represent the shared actor once as an entity with relationships to each distinct activity.
+- Keep different activities involving the same actor as distinct micro-stories (e.g. unrelated activities recorded for the same individual). Represent the shared actor once as an entity with relationships to each distinct activity.
 - Form a micro_story only when evidence supports a coherent purpose, event sequence, dependency, causal/functional relationship, or recurring activity; explain the specific connective evidence in its description.
 - Relationships among entities can suggest candidate connections between their stories, but do not merge stories solely because their entities are connected.
-- If new evidence demonstrates a meaningful cross-story connection (e.g. a hospital referral prompting a bus journey to a specialist), link the existing micro-stories and optionally propose a higher-level story while preserving their distinct identities.
+- If new evidence demonstrates a meaningful cross-story connection (e.g. an evidenced dependency between previously independent activities), link the existing micro-stories and optionally propose a higher-level story while preserving their distinct identities.
 - Never create a catch-all micro_story that simply lists a person's unrelated activities. If the evidence is only common authorship, add entity/event relationships instead.
 - When reviewing known micro_stories, avoid reinforcing an incoherent grouping merely because it already exists; propose distinct focused stories instead.
 Avoid weak stories based solely on one coincidental date match. Confidence means strength of available evidence, not probability of truth.
@@ -37,6 +38,7 @@ export async function interpretPatterns(payload,{client,model='gpt-4.1-mini'}={}
   return {annotations:arr(parsed.annotations).slice(0,15)};
 }
 export function applyAnnotations(graph,patterns,annotations,{revision=1}={}){
+  prepareClaims(graph);
   const byId=new Map(graph.map(n=>[n.id,n]));const patternById=new Map(patterns.map(p=>[p.id,p]));
   const changed=new Set();const resolved=new Map();const accepted=[];
   for(const raw of arr(annotations)){
@@ -64,10 +66,8 @@ export function applyAnnotations(graph,patterns,annotations,{revision=1}={}){
       const evidence=[...new Set(arr(edge.evidence).filter(id=>patternById.has(id)))];
       if(!evidence.length)continue;
       const relation=bounded(edge.relationship||'related to',80);
-      const prior=node.links.find(l=>l.nodeId===target&&l.relationship===relation);
-      if(prior){prior.evidence=[...new Set([...(prior.evidence||[]),...evidence])];prior.confidence=Math.max(0,Math.min(1,Number(edge.confidence)||0))}
-      else node.links.push({nodeId:target,relationship:relation,confidence:Math.max(0,Math.min(1,Number(edge.confidence)||0)),evidence});
-      changed.add(node.id);
+      if(addOrSupportClaim(node,{nodeId:target,relationship:relation,relationKey:edge.relationKey,
+        confidence:Math.max(0,Math.min(1,Number(edge.confidence)||0)),evidence},{revision}))changed.add(node.id);
     }
   }
   return {graph:[...byId.values()],changed:[...changed]};
