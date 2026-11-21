@@ -97,3 +97,18 @@ Scope: Learn/discovery only; query interpretation, query traversal, and answer g
 - **Implemented:** Reviews have per-node revision history, review status, and pending/retired summary counters.
 - **Implemented:** Regression tests cover shared-actor retirement, preservation of underlying evidence, and guarding low-confidence retirement.
 - **Pending:** Retired stories need exclusion from active story-facing views and full identity/contradiction reconciliation remains outstanding.
+
+## Generic semantic-claim reconciliation (implemented 2026-11-21)
+
+- **Implemented:** Each semantic relationship has a deterministic claim ID derived from its source node, target node and normalized relationship predicate; no demo entity names appear in the reconciliation algorithm.
+- **Implemented:** Existing maps are migrated in place on next Learn revision via `claimSchemaVersion: 1`; raw observations, patterns, prior links and original IDs remain available.
+- **Implemented:** Incremental targeted claim review receives bounded source rows, pattern evidence, active claims and semantic-node context; applies explicit keep/retire/uncertain decisions.
+- **Implemented:** A claim is retired only if the verdict has confidence >= 0.8, a substantive reason, and a valid supporting pattern ID already attached to the claim.
+- **Implemented:** Retired relationships remain in the graph with status and retirement provenance; active-link consumers must filter `status !== 'retired'`.
+- **Implemented:** Search terms and semantic evidence can be deactivated only as part of a supported claim retirement; their inactive values are retained for provenance.
+- **Implemented:** Repeated ingestion with no new records/patterns bypasses semantic model calls and redundant story review; new relevant changes trigger review.
+- **Implemented:** The targeted micro-story review now sees only active relationships and avoids domain-specific examples.
+- **Tested:** Synthetic production/expense, supplier/delivery and unchanged sensor-ingest cases cover generic retirement, evidence preservation, idempotent claims, and no-op convergence.
+- **Limitations:** Claim identity still depends on the supplied predicate wording; paraphrases may remain separate claims until canonical relation types/semantic equivalence are implemented.
+- **Limitations:** Explicit uncertain decisions leave links active rather than deleting potentially valid evidence; future passes must revisit pending claims when meaningful evidence changes.
+- **Limitations:** Semantic reconciliation is model-assisted and has not yet been validated against a live DeepSeek revision-5 map after the migration.
