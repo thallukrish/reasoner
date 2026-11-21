@@ -13,7 +13,7 @@ npm run demo -- demo/bank.csv
 npm run demo -- demo/emails.csv demo/messages.csv
 ```
 
-Set `OPENAI_API_KEY` for LLM semantic annotation; without a key, structural and local pattern discovery still run and persist. Override `REASONER_MAP` to use another file instead of `data/learn-map.json`.
+Set `DEEPSEEK_API_KEY` for DeepSeek semantic annotation (default model `deepseek-chat`) or `OPENAI_API_KEY` for OpenAI; DeepSeek takes precedence when both are set. Without a key, structural and local pattern discovery still run and persist. Override `REASONER_MAP` to use another file instead of `data/learn-map.json`. On PowerShell, use `$env:DEEPSEEK_API_KEY = 'your-key'` for the current session; optionally set `$env:DEEPSEEK_MODEL`.
 
 ## Initial architecture
 
