@@ -9,7 +9,7 @@ export function buildSemanticRequest(graph,patterns,{maxPatterns=30}={}){
   const columns=graph.filter(n=>n.type==='column').map(n=>({sourceId:n.data.sourceId,name:n.name,type:n.data.dataType,examples:n.data.examples}));
   const findings=patterns.slice(0,maxPatterns).map(p=>({id:p.id,kind:p.kind,value:p.value,count:p.count,interval:p.interval,
     sourceCount:p.sourceCount,examples:p.examples.slice(0,4),evidence:p.evidence.slice(0,8)}));
-  const known=graph.filter(n=>['entity','micro_story','event'].includes(n.type)).map(n=>({id:n.id,type:n.type,name:n.name,
+  const known=graph.filter(n=>['entity','micro_story','event'].includes(n.type)&&n.data?.status!=='retired').map(n=>({id:n.id,type:n.type,name:n.name,
     description:n.data?.description,confidence:n.data?.confidence,searchTerms:n.data?.searchTerms||[] })).slice(0,100);
   return {sources,columns,findings,known};
 }
@@ -28,7 +28,7 @@ Story coherence rules:
 - Never create a catch-all micro_story that simply lists a person's unrelated activities. If the evidence is only common authorship, add entity/event relationships instead.
 - When reviewing known micro_stories, avoid reinforcing an incoherent grouping merely because it already exists; propose distinct focused stories instead.
 Avoid weak stories based solely on one coincidental date match. Confidence means strength of available evidence, not probability of truth.
-Do not answer personal health or finance questions; only annotate the map. Limit output to 15 annotations.`;
+Do not answer end-user questions; only annotate the map. Limit output to 15 annotations.`;
 export async function interpretPatterns(payload,{client,model='gpt-4.1-mini'}={}){
   if(!client)return {annotations:[],skipped:'LLM unavailable; structural and pattern learning still works'};
   const response=await client.chat.completions.create({model,temperature:0,messages:[
