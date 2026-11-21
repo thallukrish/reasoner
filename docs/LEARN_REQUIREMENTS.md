@@ -1,0 +1,59 @@
+# Reasoner — Learn requirements and implementation plan
+
+Status: Initial requirements baseline, 2026-11-21.
+Source: `thallukrish/datasong`, `main/demo_v2`; destination: `thallukrish/reasoner`.
+Scope: Learn/discovery only; query interpretation, query traversal, and answer generation are out of scope.
+
+## Requirements — one line per important thought
+
+- LeMap discovers the world's interconnected stories rather than merely cataloguing its actors and entities.
+- A story is a sequence of interactions and state changes; actors and entities participate in it.
+- Real-world records initially provide fragments of scenes, not an already-known workflow or screenplay.
+- All demo inputs, including normalized emails and messages, enter through CSV files.
+- A structural parser creates source/sheet, column, row, and value information without imposing semantic meaning.
+- Structural nodes retain source identity, original values, basic inferred types, and durable provenance.
+- The standard LeMap graph remains an array of nodes with `id`, `type`, `name`, `data`, and `links`.
+- Each link identifies its target node and relationship, with supporting evidence and confidence where applicable.
+- A local deterministic analyzer finds repeat values, cross-source matches, periodicity, amount patterns, proximity, co-occurrence, sequences, and anomalies.
+- Pattern findings are compact, evidence-linked summaries rather than raw-data dumps sent to the LLM.
+- The LLM interprets relevant structural metadata and findings to infer semantic entities, relations, events, and micro-stories.
+- LLM annotations include descriptions, confidence, evidence references, and additional search terms or discovery hypotheses.
+- New search terms feed back into local analysis to uncover more candidates without passing all rows to the LLM.
+- A CSV row is an observation, not automatically a story instance or proof that an event occurred.
+- Independent micro-stories can emerge before sufficient evidence exists to join them into larger stories.
+- Introduce a `micro_story` graph-node type alongside existing `workflow` nodes; introduce other types only when needed.
+- Repeated story episodes may establish a reusable workflow or story pattern while preserving variants and branches.
+- Newly arriving records must match strong existing semantic nodes where supported, rather than creating unnecessary duplicates.
+- Existing high-confidence nodes are preferred candidates but never treated as infallible identity matches.
+- New evidence triggers re-evaluation of affected semantic relationships, micro-stories, descriptions, and confidence.
+- Confidence for entity identity, relationship, and story interpretation is maintained independently.
+- Contradictory evidence may lower confidence or split an incorrect association rather than merely increasing scores.
+- Confidence changes depend on evidence changes, not on repeated LLM agreement.
+- Preserve conflicting or unassigned observations so later evidence can connect or reinterpret them.
+- Re-evaluate only the impacted neighborhood and propagate material changes to dependent micro-stories.
+- Preserve provenance and a revision trail for learned claims and confidence changes.
+- Stop an exploration direction when no material new evidence, interpretation, or unresolved hypothesis is produced.
+- Learned travel episodes, such as a bus booking to Mysuru, should remain available as high-priority evidence for later queries.
+- A booking is not proof of completed travel or of a preference for that mode of transportation.
+- The demo must show structural discovery, deterministic patterns, semantic micro-stories, and refinement after incremental evidence.
+- Use synthetic personal records for the initial demo and retain DataSong unchanged.
+
+## Implementation sequence — one line per task
+
+- **L0:** Harvest and test the minimal compatible graph persistence/normalization, model-call, and semantic-reconciliation utilities from DataSong `demo_v2`.
+- **L1:** Implement a CSV structural adapter producing stable source, column, row, and record provenance identifiers.
+- **L2:** Implement a bounded local pattern-detector registry with evidence IDs, match scores, and compact finding summaries.
+- **L3:** Implement LLM semantic annotation over selected findings, with validated evidence IDs and generated search terms.
+- **L4:** Implement an incremental discovery frontier that runs suggested local searches and deduplicates explored hypotheses.
+- **L5:** Persist `micro_story` nodes, related events/entities, links, confidence, and supporting pattern references.
+- **L6:** Implement incremental entity matching, impacted-story re-evaluation, contradiction handling, and revision logging.
+- **L7:** Expose minimal Learn controls and inspectable graph/pattern/story views in a simple UI.
+- **L8:** Validate first-pass and incremental discovery on synthetic bank, email, and message CSV fixtures without any query component.
+
+## Extraction boundary
+
+- **Reuse:** `demo_v2/server/explorer/mapPersistence.js` graph conventions, semantic model-call patterns, entity-reconciliation ideas, and workflow accumulation concepts.
+- **Adapt:** Current reconciliation assumes repository-backed entity schemas; CSV-driven identity and event linking need a source-agnostic path.
+- **Exclude initially:** Call-path indexers, Git runtime topology, Odoo/Moqui/Python adapters, Pass-2 executable-flow logic, Query-v4, and query UI.
+- **Contract:** Keep source observations immutable and differentiate structural facts, deterministic findings, and LLM-inferred claims.
+- **Acceptance:** Learning from an added ticket/email record updates existing entities and affected micro-stories without full relearning.
