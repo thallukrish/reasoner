@@ -60,6 +60,7 @@ export async function learnCsvFiles({files,mapPath,client=null,model='gpt-4.1-mi
     .flatMap(n=>n.data?.searchTerms||[]);
   const fresh=discoverHintPatterns(update.graph,suggestedTerms).filter(p=>!initialIds.has(p.id));
   if(fresh.length){
+    impacted.push(...fresh.map(p=>p.id));
     patterns=[...patterns,...fresh];
     update.graph=mergeStructural(update.graph,patternNodes(fresh)).graph;
     if(client && annotations===null){
