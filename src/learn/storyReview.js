@@ -1,3 +1,4 @@
+import { activeLinks } from './claims.js';
 /**
  * Targeted Learn review of affected micro-stories.
  * A retired story is retained with provenance but excluded from active discovery.
@@ -13,16 +14,16 @@ export function storyReviewCandidates(graph,{changedIds=[],changedPatternIds=[],
     (forcePending&&n.data?.reviewNeeded) ||
     changed.has(n.id) ||
     arr(n.data?.evidence).some(id=>patterns.has(id)) ||
-    arr(n.links).some(l=>changed.has(l.nodeId)||arr(l.evidence).some(id=>patterns.has(id))));
+    activeLinks(n).some(l=>changed.has(l.nodeId)||arr(l.evidence).some(id=>patterns.has(id))));
 }
 export function buildStoryReviewContext(graph,story,patterns){
   const byId=new Map(graph.map(n=>[n.id,n]));
-  const ids=new Set([...arr(story.data?.evidence),...arr(story.links).flatMap(l=>arr(l.evidence))]);
+  const ids=new Set([...arr(story.data?.evidence),...activeLinks(story).flatMap(l=>arr(l.evidence))]);
   const findings=patterns.filter(p=>ids.has(p.id)).slice(0,24).map(p=>({
     id:p.id,kind:p.kind,value:p.value,evidence:arr(p.evidence).slice(0,12)
   }));
   const rowIds=new Set(findings.flatMap(p=>p.evidence));
-  const related=arr(story.links).map(l=>({id:l.nodeId,relationship:l.relationship,
+  const related=activeLinks(story).map(l=>({id:l.nodeId,relationship:l.relationship,
     name:byId.get(l.nodeId)?.name,type:byId.get(l.nodeId)?.type,
     description:byId.get(l.nodeId)?.data?.description,confidence:l.confidence})).slice(0,30);
   const rows=[...rowIds].map(id=>byId.get(id)).filter(n=>n?.type==='row')
@@ -34,11 +35,11 @@ export const STORY_REVIEW_INSTRUCTIONS=`You are reviewing ONE existing LeMap mic
 Decide whether its activities form a coherent story based on causal/functional connection, common purpose, meaningful sequence, or recurring activity.
 Sharing only an actor, person, organization, location, topic or a nearby date is not sufficient; a person may have multiple unrelated stories.
 A relationship between entities may suggest a connection, but does not alone prove that their activities belong to one story.
-Keep separate healthcare and travel stories for Arun unless evidence demonstrates a genuine connection (e.g. referral to a destination).
+Keep unrelated activities separate unless observations demonstrate a meaningful functional, causal or purposive connection.
 Return strict JSON {"decision":"keep|retire|uncertain","reason":"evidence-grounded brief reason","confidence":0.0}.
 Retire only where the existing story is a catch-all grouping of unrelated activities with no supported plot continuity.
 Prefer uncertain where evidence is insufficient either to support or refute coherence.
-Do not invent new facts, IDs, journeys, appointments, or connections. Do not assume bookings imply completed travel.
+Do not invent new facts, IDs, observed actions, process completion, or connections. An indication of intent or preparation is not proof of completion.
 The decision must concern the supplied story ID only.`;
 export async function reviewStory(client,model,context){
   const result=await client.chat.completions.create({model,temperature:0,
