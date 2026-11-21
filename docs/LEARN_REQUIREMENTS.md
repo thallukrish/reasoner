@@ -57,3 +57,18 @@ Scope: Learn/discovery only; query interpretation, query traversal, and answer g
 - **Exclude initially:** Call-path indexers, Git runtime topology, Odoo/Moqui/Python adapters, Pass-2 executable-flow logic, Query-v4, and query UI.
 - **Contract:** Keep source observations immutable and differentiate structural facts, deterministic findings, and LLM-inferred claims.
 - **Acceptance:** Learning from an added ticket/email record updates existing entities and affected micro-stories without full relearning.
+
+## Implementation status (2026-11-21)
+
+- **Implemented:** Harvested DataSong LeMap graph conversion and normalization functions, retaining its node/link representation.
+- **Implemented:** CSV source, column, and row structural nodes with stable IDs and basic column types.
+- **Implemented:** Deterministic repeated-value, cross-source, periodicity, and bounded temporal-proximity findings.
+- **Implemented:** Optional LLM interpretation of compact findings into evidence-backed entities, events, and micro-stories.
+- **Implemented:** Semantic search-term feedback through one bounded local-search/interpretation pass.
+- **Implemented:** JSON map persistence, revision history, and marking affected existing story nodes for review.
+- **Implemented:** Synthetic bank, email, and message CSVs; built-in Node regression suite and GitHub Actions test workflow.
+- **Pending:** Strong entity identity reconciliation and de-duplication against multiple candidate existing nodes.
+- **Pending:** Automated affected-story re-interpretation, contradiction-aware confidence calibration, and evidence invalidation.
+- **Pending:** Deeper temporal event/episode reconstruction, story clustering, and recurring workflow generalization.
+- **Pending:** Minimal Learn UI for loading CSV and inspecting patterns, evidence, and micro-stories.
+- **Excluded:** Query-v4 and goal-directed query traversal remain outside the current Learn-only milestone.
