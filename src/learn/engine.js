@@ -4,6 +4,7 @@ import { csvToGraph,stableId } from './csv.js';
 import { discoverPatterns } from './patterns.js';
 import { discoverHintPatterns } from './hints.js';
 import { reviewAffectedStories } from './storyReview.js';
+import { prepareClaims,activeLinks,reconcileClaims } from './claims.js';
 import { buildSemanticRequest,interpretPatterns,applyAnnotations } from './semantic.js';
 import { graphFromSemanticObjects,semanticObjectsFromGraph } from '../graph/lemapGraph.js';
 export function readMap(file){
@@ -37,27 +38,30 @@ function patternNodes(patterns){
 }
 export async function learnCsvFiles({files,mapPath,client=null,model='gpt-4.1-mini',annotations=null}){
   const state=readMap(mapPath);
-  let graph=state.graph;const structuralChanges=[];
+  const migration=state.claimSchemaVersion!==1;
+  let graph=prepareClaims(state.graph);const structuralChanges=[];
   for(const file of files){
     const merged=mergeStructural(graph,csvToGraph(file.name,file.content));
     graph=merged.graph;structuralChanges.push(...merged.changed);
   }
   // Refresh deterministic findings from current structural evidence. Semantic nodes are preserved.
-  const knownTerms=graph.filter(n=>['entity','event','micro_story'].includes(n.type))
+  const knownTerms=graph.filter(n=>['entity','event','micro_story'].includes(n.type)&&n.data?.status!=='retired')
     .flatMap(n=>n.data?.searchTerms||[]);
   let patterns=[...discoverPatterns(graph),...discoverHintPatterns(graph,knownTerms)];
-  const currentPatternIds=new Set(patterns.map(p=>p.id));
   const oldPatterns=new Map((state.patterns||[]).map(p=>[p.id,p]));
   const impacted=patterns.filter(p=>JSON.stringify(oldPatterns.get(p.id))!==JSON.stringify(p)).map(p=>p.id);
   const base=graph.filter(n=>n.type!=='pattern');
   graph=mergeStructural(base,patternNodes(patterns)).graph;
-  const payload=buildSemanticRequest(graph,patterns);
-  const result=annotations===null?await interpretPatterns(payload,{client,model}):{annotations};
+  const substantiveChange=structuralChanges.length>0||impacted.length>0;
+  const shouldInterpret=annotations!==null || substantiveChange || (state.revision===0);
+  const result=annotations!==null?{annotations}:shouldInterpret?
+    await interpretPatterns(buildSemanticRequest(graph,patterns),{client,model}):
+    {annotations:[],skipped:'No new observations or patterns; semantic interpretation unchanged'};
   let update=applyAnnotations(graph,patterns,result.annotations,{revision:state.revision+1});
   // A single bounded feedback pass: newly inferred semantic search terms
   // are searched locally, and only fresh evidence summaries go to the LLM.
   const initialIds=new Set(patterns.map(p=>p.id));
-  const suggestedTerms=update.graph.filter(n=>['entity','event','micro_story'].includes(n.type))
+  const suggestedTerms=update.graph.filter(n=>['entity','event','micro_story'].includes(n.type)&&n.data?.status!=='retired')
     .flatMap(n=>n.data?.searchTerms||[]);
   const fresh=discoverHintPatterns(update.graph,suggestedTerms).filter(p=>!initialIds.has(p.id));
   if(fresh.length){
@@ -72,23 +76,25 @@ export async function learnCsvFiles({files,mapPath,client=null,model='gpt-4.1-mi
   }
   // Revisit only semantically affected neighbors, and mark their revision dependencies.
   const affected=new Set(update.changed);
-  for(const n of update.graph.filter(n=>['micro_story','workflow'].includes(n.type))){
-    if(n.links.some(l=>affected.has(l.nodeId)||l.evidence?.some(id=>impacted.includes(id)))){
+  for(const n of update.graph.filter(n=>['micro_story','workflow'].includes(n.type)&&n.data?.status!=='retired')){
+    if(activeLinks(n).some(l=>affected.has(l.nodeId)||l.evidence?.some(id=>impacted.includes(id)))){
       n.data={...n.data,reviewNeeded:true,reviewReason:'connected evidence or entity changed'};
       affected.add(n.id);
     }
   }
+  const claims=await reconcileClaims(update.graph,patterns,{client,model,revision:state.revision+1,
+    changedIds:update.changed,changedPatternIds:impacted,migration});
   const review=await reviewAffectedStories(update.graph,patterns,{client,model,revision:state.revision+1,changedIds:update.changed,changedPatternIds:impacted,forcePending:true});
-  const next={version:1,revision:state.revision+1,graph:update.graph,patterns,
+  const next={version:1,claimSchemaVersion:1,revision:state.revision+1,graph:update.graph,patterns,
     history:[...(state.history||[]),{revision:state.revision+1,sourceFiles:files.map(f=>f.name),
       structuralChanges:structuralChanges.length,changedPatternIds:impacted,semanticChanges:[...affected],
-      storyReview:{reviewed:review.reviewed,retired:review.retired,pending:review.pending},
+      claimReview:claims,storyReview:{reviewed:review.reviewed,retired:review.retired,pending:review.pending},
       llmSkipped:result.skipped||null}].slice(-100)};
   writeMap(mapPath,next);
   return {state:next,summary:{revision:next.revision,sources:next.graph.filter(n=>n.type==='source').length,
     rows:next.graph.filter(n=>n.type==='row').length,patterns:patterns.length,
     semanticNodes:next.graph.filter(n=>['entity','event','micro_story'].includes(n.type)).length,
-    affected:[...affected],storyReview:{reviewed:review.reviewed,retired:review.retired,pending:review.pending},llmSkipped:result.skipped||null}};
+    affected:[...affected],claimReview:claims,storyReview:{reviewed:review.reviewed,retired:review.retired,pending:review.pending},llmSkipped:result.skipped||null}};
 }
 export function lemapCompatibleRoundtrip(graph){
   return graphFromSemanticObjects(semanticObjectsFromGraph(graph));
