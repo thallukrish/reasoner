@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { csvToGraph,stableId } from './csv.js';
 import { discoverPatterns } from './patterns.js';
+import { discoverHintPatterns } from './hints.js';
 import { buildSemanticRequest,interpretPatterns,applyAnnotations } from './semantic.js';
 import { graphFromSemanticObjects,semanticObjectsFromGraph } from '../graph/lemapGraph.js';
 export function readMap(file){
@@ -41,7 +42,9 @@ export async function learnCsvFiles({files,mapPath,client=null,model='gpt-4.1-mi
     graph=merged.graph;structuralChanges.push(...merged.changed);
   }
   // Refresh deterministic findings from current structural evidence. Semantic nodes are preserved.
-  const patterns=discoverPatterns(graph);
+  const knownTerms=graph.filter(n=>['entity','event','micro_story'].includes(n.type))
+    .flatMap(n=>n.data?.searchTerms||[]);
+  let patterns=[...discoverPatterns(graph),...discoverHintPatterns(graph,knownTerms)];
   const currentPatternIds=new Set(patterns.map(p=>p.id));
   const oldPatterns=new Map((state.patterns||[]).map(p=>[p.id,p]));
   const impacted=patterns.filter(p=>JSON.stringify(oldPatterns.get(p.id))!==JSON.stringify(p)).map(p=>p.id);
@@ -49,7 +52,22 @@ export async function learnCsvFiles({files,mapPath,client=null,model='gpt-4.1-mi
   graph=mergeStructural(base,patternNodes(patterns)).graph;
   const payload=buildSemanticRequest(graph,patterns);
   const result=annotations===null?await interpretPatterns(payload,{client,model}):{annotations};
-  const update=applyAnnotations(graph,patterns,result.annotations,{revision:state.revision+1});
+  let update=applyAnnotations(graph,patterns,result.annotations,{revision:state.revision+1});
+  // A single bounded feedback pass: newly inferred semantic search terms
+  // are searched locally, and only fresh evidence summaries go to the LLM.
+  const initialIds=new Set(patterns.map(p=>p.id));
+  const suggestedTerms=update.graph.filter(n=>['entity','event','micro_story'].includes(n.type))
+    .flatMap(n=>n.data?.searchTerms||[]);
+  const fresh=discoverHintPatterns(update.graph,suggestedTerms).filter(p=>!initialIds.has(p.id));
+  if(fresh.length){
+    patterns=[...patterns,...fresh];
+    update.graph=mergeStructural(update.graph,patternNodes(fresh)).graph;
+    if(client && annotations===null){
+      const feedback=await interpretPatterns(buildSemanticRequest(update.graph,fresh),{client,model});
+      const revised=applyAnnotations(update.graph,patterns,feedback.annotations,{revision:state.revision+1});
+      update={graph:revised.graph,changed:[...new Set([...update.changed,...revised.changed])]};
+    }
+  }
   // Revisit only semantically affected neighbors, and mark their revision dependencies.
   const affected=new Set(update.changed);
   for(const n of update.graph.filter(n=>['micro_story','workflow'].includes(n.type))){
