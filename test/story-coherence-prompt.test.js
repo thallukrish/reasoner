@@ -4,7 +4,7 @@ import { LEARN_SEMANTIC_INSTRUCTIONS, interpretPatterns } from '../src/learn/sem
 
 test('Learn prompt distinguishes shared actors from story continuity',()=>{
   assert.match(LEARN_SEMANTIC_INSTRUCTIONS,/shared actor.*does NOT by itself establish/i);
-  assert.match(LEARN_SEMANTIC_INSTRUCTIONS,/Arun's hospital follow-up and Mysuru bus booking/);
+  assert.match(LEARN_SEMANTIC_INSTRUCTIONS,/unrelated activities recorded for the same individual/);
   assert.match(LEARN_SEMANTIC_INSTRUCTIONS,/link the existing micro-stories/);
   assert.match(LEARN_SEMANTIC_INSTRUCTIONS,/Never create a catch-all micro_story/);
 });
