@@ -12,18 +12,26 @@ export function buildSemanticRequest(graph,patterns,{maxPatterns=30}={}){
     description:n.data?.description,confidence:n.data?.confidence,searchTerms:n.data?.searchTerms||[] })).slice(0,100);
   return {sources,columns,findings,known};
 }
-const INSTRUCTIONS=`You are the LeMap Learn semantic interpreter, NOT a query-answering agent.
+export const LEARN_SEMANTIC_INSTRUCTIONS=`You are the LeMap Learn semantic interpreter, NOT a query-answering agent.
 Input contains structural CSV metadata, compact deterministic patterns, and existing semantic nodes.
 Discover candidate semantic entities, events and micro-stories supported by pattern evidence.
 Return strict JSON: {"annotations":[{"key":"stable semantic key","type":"entity|event|micro_story","name":"name","description":"short evidence-grounded description","confidence":0.0,"searchTerms":["term"],"evidence":["pattern id"],"related":[{"key":"other annotation key or existing node id","relationship":"meaningful relationship","confidence":0.0,"evidence":["pattern id"]}]}]}.
 Use ONLY evidence IDs that occur in the provided findings; do not fabricate records or claim actual travel/visits based only on a booking/payment.
 You may update a known semantic node by using its exact id as key. Do not duplicate existing entities.
+Story coherence rules:
+- A shared actor, location, merchant, topic, timestamp, or generic entity relationship does NOT by itself establish a common story or workflow.
+- Keep different activities involving the same actor as distinct micro-stories (e.g. Arun's hospital follow-up and Mysuru bus booking). Represent the shared actor once as an entity with relationships to each distinct activity.
+- Form a micro_story only when evidence supports a coherent purpose, event sequence, dependency, causal/functional relationship, or recurring activity; explain the specific connective evidence in its description.
+- Relationships among entities can suggest candidate connections between their stories, but do not merge stories solely because their entities are connected.
+- If new evidence demonstrates a meaningful cross-story connection (e.g. a hospital referral prompting a bus journey to a specialist), link the existing micro-stories and optionally propose a higher-level story while preserving their distinct identities.
+- Never create a catch-all micro_story that simply lists a person's unrelated activities. If the evidence is only common authorship, add entity/event relationships instead.
+- When reviewing known micro_stories, avoid reinforcing an incoherent grouping merely because it already exists; propose distinct focused stories instead.
 Avoid weak stories based solely on one coincidental date match. Confidence means strength of available evidence, not probability of truth.
 Do not answer personal health or finance questions; only annotate the map. Limit output to 15 annotations.`;
 export async function interpretPatterns(payload,{client,model='gpt-4.1-mini'}={}){
   if(!client)return {annotations:[],skipped:'LLM unavailable; structural and pattern learning still works'};
   const response=await client.chat.completions.create({model,temperature:0,messages:[
-    {role:'system',content:INSTRUCTIONS},{role:'user',content:JSON.stringify(payload)}],
+    {role:'system',content:LEARN_SEMANTIC_INSTRUCTIONS},{role:'user',content:JSON.stringify(payload)}],
     response_format:{type:'json_object'}});
   const parsed=JSON.parse(response.choices[0]?.message?.content||'{}');
   return {annotations:arr(parsed.annotations).slice(0,15)};
