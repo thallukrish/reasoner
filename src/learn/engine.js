@@ -3,6 +3,7 @@ import path from 'node:path';
 import { csvToGraph,stableId } from './csv.js';
 import { discoverPatterns } from './patterns.js';
 import { discoverHintPatterns } from './hints.js';
+import { reviewAffectedStories } from './storyReview.js';
 import { buildSemanticRequest,interpretPatterns,applyAnnotations } from './semantic.js';
 import { graphFromSemanticObjects,semanticObjectsFromGraph } from '../graph/lemapGraph.js';
 export function readMap(file){
@@ -77,15 +78,17 @@ export async function learnCsvFiles({files,mapPath,client=null,model='gpt-4.1-mi
       affected.add(n.id);
     }
   }
+  const review=await reviewAffectedStories(update.graph,patterns,{client,model,revision:state.revision+1,changedIds:update.changed,changedPatternIds:impacted,forcePending:true});
   const next={version:1,revision:state.revision+1,graph:update.graph,patterns,
     history:[...(state.history||[]),{revision:state.revision+1,sourceFiles:files.map(f=>f.name),
       structuralChanges:structuralChanges.length,changedPatternIds:impacted,semanticChanges:[...affected],
+      storyReview:{reviewed:review.reviewed,retired:review.retired,pending:review.pending},
       llmSkipped:result.skipped||null}].slice(-100)};
   writeMap(mapPath,next);
   return {state:next,summary:{revision:next.revision,sources:next.graph.filter(n=>n.type==='source').length,
     rows:next.graph.filter(n=>n.type==='row').length,patterns:patterns.length,
     semanticNodes:next.graph.filter(n=>['entity','event','micro_story'].includes(n.type)).length,
-    affected:[...affected],llmSkipped:result.skipped||null}};
+    affected:[...affected],storyReview:{reviewed:review.reviewed,retired:review.retired,pending:review.pending},llmSkipped:result.skipped||null}};
 }
 export function lemapCompatibleRoundtrip(graph){
   return graphFromSemanticObjects(semanticObjectsFromGraph(graph));
