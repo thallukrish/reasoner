@@ -52,13 +52,13 @@ export async function reviewStory(client,model,context){
 export function applyStoryReview(graph,storyId,verdict,revision){
   const node=graph.find(n=>n.id===storyId&&isActive(n));
   if(!node||!['keep','retire','uncertain'].includes(verdict?.decision))return false;
-  const reviewed=verdict.decision!=='uncertain';
   // A model cannot retire a story without a substantive high-confidence judgment.
   const retire=verdict.decision==='retire'&&clamp(verdict.confidence)>=0.8&&clipped(verdict.reason).length>=20;
+  const reviewed=verdict.decision==='keep'||retire;
   node.data={...node.data,
     status:retire?'retired':(node.data.status||'active'),
     reviewNeeded:!reviewed,
-    reviewReason:reviewed?'':verdict.reason,
+    reviewReason:reviewed?'':(verdict.reason||'Insufficient evidence for confident review'),
     lastReview:{revision,decision:retire?'retire':verdict.decision,confidence:clamp(verdict.confidence),reason:verdict.reason},
     reviewHistory:[...arr(node.data.reviewHistory),{revision,...verdict,appliedRetirement:retire}].slice(-20)};
   return retire;
