@@ -87,3 +87,13 @@ Scope: Learn/discovery only; query interpretation, query traversal, and answer g
 
 - **Implemented (2026-11-21):** DeepSeek Learn prompt now keeps shared-actor activities in separate micro-stories unless purpose, causal/dependency, sequence, or other meaningful evidence connects them.
 - **Limitation:** Prompt refinements affect future annotations but do not automatically delete pre-existing incoherent story nodes; semantic cleanup remains pending.
+
+## Story-coherence reconciliation implementation (2026-11-21)
+
+- **Implemented:** Added `src/learn/storyReview.js` for targeted DeepSeek reassessment of existing micro-story coherence from bounded evidence and related nodes.
+- **Implemented:** Shared actors alone cannot justify an umbrella story; a meaningful purpose, dependency, temporal sequence, or causal link must support continuity.
+- **Implemented:** Model-reviewed incoherent stories are retired only when a substantive decision reaches at least 0.80 stated confidence.
+- **Implemented:** Retired stories remain in the graph for provenance while entity/event nodes and separately supported micro-stories remain intact.
+- **Implemented:** Reviews have per-node revision history, review status, and pending/retired summary counters.
+- **Implemented:** Regression tests cover shared-actor retirement, preservation of underlying evidence, and guarding low-confidence retirement.
+- **Pending:** Retired stories need exclusion from active story-facing views and full identity/contradiction reconciliation remains outstanding.
